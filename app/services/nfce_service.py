@@ -67,6 +67,9 @@ async def process_nfce(link_nfce: str, tipo: str, html_override: str | None = No
     if not items:
         campos_faltantes.append("itens")
 
+    if parsed.qtd_itens and parsed.qtd_itens != len(items):
+        parsed.warnings.append("qtd_itens divergente entre resumo e itens parseados")
+
     status = "ok" if not campos_faltantes and not parsed.warnings else "partial"
     parse_status = "OK" if status == "ok" else "PARTIAL"
 
@@ -91,7 +94,7 @@ async def process_nfce(link_nfce: str, tipo: str, html_override: str | None = No
         valor_total_nota=parsed.valor_total_nota,
         valor_pago=parsed.valor_pago if parsed.valor_pago is not None else parsed.valor_total_nota,
         forma_pagamento=parsed.forma_pagamento,
-        qtd_itens=len(items),
+        qtd_itens=parsed.qtd_itens or len(items),
         link=link_nfce,
     )
 

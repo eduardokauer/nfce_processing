@@ -21,17 +21,19 @@ def test_process_nfce_success(monkeypatch) -> None:
     response = client.post(
         "/process-nfce",
         json={
-            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260306057223056630650210000274541210607969|3|1",
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260371676316001975651120001006781062282698|3|1",
             "tipo": "Supermercado",
         },
     )
 
     data = response.json()
     assert response.status_code == 200
-    assert data["status"] == "partial"  # campos opcionais/heurísticas podem variar
-    assert data["lancamento"]["chave_acesso"] == "35260306057223056630650210000274541210607969"
-    assert data["lancamento"]["qtd_itens"] == 2
-    assert len(data["itens"]) == 2
+    assert data["lancamento"]["chave_acesso"] == "35260371676316001975651120001006781062282698"
+    assert data["lancamento"]["emitente"] == "SUPERMERCADOS MAMBO LTDA"
+    assert data["lancamento"]["valor_total_nota"] == 110.52
+    assert data["lancamento"]["valor_pago"] == 110.52
+    assert data["lancamento"]["forma_pagamento"] == "Dinheiro"
+    assert len(data["itens"]) == 3
 
 
 def test_process_nfce_invalid_tipo() -> None:
@@ -39,11 +41,14 @@ def test_process_nfce_invalid_tipo() -> None:
     response = client.post(
         "/process-nfce",
         json={
-            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260306057223056630650210000274541210607969|3|1",
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260371676316001975651120001006781062282698|3|1",
             "tipo": "Restaurante",
         },
     )
     assert response.status_code == 400
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error_code"] == "INVALID_INPUT"
 
 
 def test_process_nfce_invalid_link() -> None:
@@ -56,6 +61,7 @@ def test_process_nfce_invalid_link() -> None:
         },
     )
     assert response.status_code == 400
+    assert response.json()["error_code"] == "INVALID_INPUT"
 
 
 def test_process_nfce_partial_parse(monkeypatch) -> None:
@@ -68,7 +74,7 @@ def test_process_nfce_partial_parse(monkeypatch) -> None:
     response = client.post(
         "/process-nfce",
         json={
-            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260306057223056630650210000274541210607969|3|1",
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260311222333000144650110000000111122223333|3|1",
             "tipo": "Outro",
         },
     )
@@ -79,13 +85,35 @@ def test_process_nfce_partial_parse(monkeypatch) -> None:
     assert "itens" in data["parse_info"]["campos_faltantes"]
 
 
-def test_parser_text_fixture() -> None:
+def test_process_nfce_parse_error(monkeypatch) -> None:
+    async def _fake_fetch(_: str) -> str:
+        return "<html><body><pre>documento sem campos críticos</pre></body></html>"
+
+    monkeypatch.setattr("app.services.nfce_service.fetch_nfce_html", _fake_fetch)
+    client = TestClient(app)
+
+    response = client.post(
+        "/process-nfce",
+        json={
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=1",
+            "tipo": "Outro",
+        },
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error_code"] == "PARSE_ERROR"
+
+
+def test_parser_text_fixture_realistic() -> None:
     from app.services.parser_service import parse_nfce_sp_html
 
     text_fixture = _load_fixture("sample_nfce_sp.txt")
     html = f"<html><body><pre>{text_fixture}</pre></body></html>"
     parsed = parse_nfce_sp_html(html)
 
-    assert parsed.chave_acesso == "35260306057223056630650210000274541210607969"
-    assert parsed.emitente == "SENDAS DISTRIBUIDORA S/A"
-    assert parsed.items
+    assert parsed.chave_acesso == "35260371676316001975651120001006781062282698"
+    assert parsed.emitente == "SUPERMERCADOS MAMBO LTDA"
+    assert parsed.cnpj_emitente == "71.676.316/0019-75"
+    assert len(parsed.items) == 3

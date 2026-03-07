@@ -70,6 +70,10 @@ pytest -q
    ```
 5. (Opcional) Configure variáveis de ambiente conforme `.env.example`.
 
+### Docker
+
+A imagem usa `PORT` com default `8000`, evitando porta fixa e ficando compatível com Render/Koyeb/Fly etc.
+
 ## Limitações atuais
 - Parser focado em layout público da NFC-e SP; variações grandes de HTML podem cair no modo parcial.
 - Estratégia de extração de itens usa parse estruturado com fallback regex textual; pode precisar ajustes para novos layouts.

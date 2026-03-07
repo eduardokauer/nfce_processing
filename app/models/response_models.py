@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -78,3 +78,10 @@ class ProcessNFCEResponse(BaseModel):
     itens: list[ItemResponse]
     novos_itens_catalogo: list[NovoItemCatalogo]
     parse_info: ParseInfo
+
+
+class ErrorResponse(BaseModel):
+    status: Literal["error"] = "error"
+    message: str
+    error_code: str
+    details: list[Any] = Field(default_factory=list)
