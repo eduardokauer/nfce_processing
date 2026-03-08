@@ -99,7 +99,7 @@ def _slice_items_section(raw_text: str) -> tuple[str, int | None]:
     end_markers = [
         r"(?im)^Qtd\.\s*total\s*de\s*itens\s*:",
         r"(?im)^Valor\s*total\s*R\$\s*:",
-        r"(?im)^INFORMA(?:Ã‡Ã•ES|Ãƒâ€¡Ãƒâ€¢ES)\s+GERAIS\s+DA\s+NOTA",
+        r"(?im)^INFORMA(?:ÇÕES|COES|Ã‡Ã•ES|Ãƒâ€¡Ãƒâ€¢ES)\s+GERAIS\s+DA\s+NOTA",
         r"(?im)^CHAVE\s+DE\s+ACESSO",
     ]
     ends = [m.start() for marker in end_markers if (m := re.search(marker, tail))]
@@ -131,7 +131,7 @@ def _extract_emitente(raw_text: str) -> str | None:
 
 
 def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
-    labeled = _find(r"(?:Endere(?:Ã§o|cÃƒÂ§o))\s*:?\s*([^\n]+)", raw_text)
+    labeled = _find(r"(?:Endere(?:ço|co|Ã§o|cÃƒÂ§o))\s*:?\s*([^\n]+)", raw_text)
     if labeled:
         return labeled
 
@@ -155,13 +155,15 @@ def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
                 "QTD. TOTAL",
                 "VALOR TOTAL",
                 "FORMA DE PAGAMENTO",
+                "INFORMAÇÕES GERAIS",
+                "INFORMACOES GERAIS",
                 "INFORMAÃ‡Ã•ES GERAIS",
                 "INFORMAÃƒâ€¡Ãƒâ€¢ES GERAIS",
                 "CHAVE DE ACESSO",
             )
         ):
             break
-        if "(" in line and ("CÃ“DIGO" in upper or "CÃƒâ€œDIGO" in upper):
+        if "(" in line and ("CÓDIGO" in upper or "CODIGO" in upper or "CÃ“DIGO" in upper or "CÃƒâ€œDIGO" in upper):
             break
         address_parts.append(line)
 
@@ -303,13 +305,13 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
     parsed.cnpj_emitente = _find(r"CNPJ\s*:?\s*(\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}-?\d{2})", raw_text)
     parsed.endereco_emitente = _extract_endereco(raw_text, items_start)
 
-    parsed.numero_nota = _find(r"N(?:Ãºmero|ÃƒÂºmero|umero)\s*:?\s*(\d+)", raw_text)
-    parsed.serie_nota = _find(r"S(?:Ã©rie|ÃƒÂ©rie|erie)\s*:?\s*(\d+)", raw_text)
+    parsed.numero_nota = _find(r"N(?:úmero|Ãºmero|ÃƒÂºmero|umero)\s*:?\s*(\d+)", raw_text)
+    parsed.serie_nota = _find(r"S(?:érie|Ã©rie|ÃƒÂ©rie|erie)\s*:?\s*(\d+)", raw_text)
     parsed.protocolo_autorizacao = _find(
-        r"Protocolo\s*de\s*Autoriza(?:Ã§Ã£o|ÃƒÂ§ÃƒÂ£o|cao)\s*:?\s*(\d+)", raw_text
+        r"Protocolo\s*de\s*Autoriza(?:ção|Ã§Ã£o|ÃƒÂ§ÃƒÂ£o|cao)\s*:?\s*(\d+)", raw_text
     )
     dt = _find(
-        r"(?:Data\s*de\s*Emiss(?:Ã£o|ÃƒÂ£o)|Emiss(?:Ã£o|ÃƒÂ£o))\s*:?\s*(\d{2}/\d{2}/\d{4}\s*\d{2}:\d{2}:\d{2})",
+        r"(?:Data\s*de\s*)?Emiss(?:ão|ao|Ã£o|ÃƒÂ£o)\s*:?\s*(\d{2}/\d{2}/\d{4}\s*\d{2}:\d{2}:\d{2})",
         raw_text,
     )
     (

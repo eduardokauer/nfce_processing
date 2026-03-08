@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -63,6 +63,7 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     data = response.json()
     codigos = [item["codigo_item"] for item in data["itens"]]
 
+    assert data["status"] == "ok"
     assert data["lancamento"]["qtd_itens"] == 10
     assert len(data["itens"]) == 10
     assert codigos == [
@@ -79,7 +80,15 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     ]
     assert codigos.count("1043171") == 1
     assert data["lancamento"]["forma_pagamento"] == "Vale Alimentação"
-
+    assert data["lancamento"]["endereco_emitente"] == "AV BRASIL , 1500 , LOJA 02 , RIO DE JANEIRO , RJ"
+    assert data["lancamento"]["numero_nota"] == "999991"
+    assert data["lancamento"]["serie_nota"] == "1"
+    assert data["lancamento"]["protocolo_autorizacao"] == "135261999999999"
+    assert data["lancamento"]["data_emissao"] == "2026-03-06"
+    assert data["lancamento"]["hora_emissao"] == "20:12:30"
+    assert data["lancamento"]["data_hora_emissao"] == "2026-03-06T20:12:30-03:00"
+    assert data["lancamento"]["mes_ref"] == "2026-03"
+    assert data["lancamento"]["ano_ref"] == 2026
 
 def test_process_nfce_invalid_tipo() -> None:
     client = TestClient(app)
@@ -132,7 +141,7 @@ def test_process_nfce_partial_parse(monkeypatch) -> None:
 
 def test_process_nfce_parse_error(monkeypatch) -> None:
     async def _fake_fetch(_: str) -> str:
-        return "<html><body><pre>documento sem campos críticos</pre></body></html>"
+        return "<html><body><pre>documento sem campos crÃ­ticos</pre></body></html>"
 
     monkeypatch.setattr("app.services.nfce_service.fetch_nfce_html", _fake_fetch)
     client = TestClient(app)
@@ -167,3 +176,4 @@ def test_parser_text_fixture_realistic() -> None:
     assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
     assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+
