@@ -35,7 +35,40 @@ def test_process_nfce_success(monkeypatch) -> None:
     assert data["lancamento"]["forma_pagamento"] == "Dinheiro"
     assert data["lancamento"]["endereco_emitente"]
     assert len(data["itens"]) == 3
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
     assert data["itens"][0]["descricao_capturada"] == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+    codigos = [item["codigo_item"] for item in data["itens"]]
+    descricoes = [item["descricao_capturada"] for item in data["itens"]]
+    assert codigos == ["277976", "277857", "223515"]
+    assert len(set(codigos)) == 3
+    assert descricoes[0] == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert descricoes[1] != descricoes[0]
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 
 
 def test_process_nfce_invalid_tipo() -> None:
@@ -121,4 +154,34 @@ def test_parser_text_fixture_realistic() -> None:
     assert parsed.endereco_emitente and "AL RIO NEGRO" in parsed.endereco_emitente
     assert parsed.forma_pagamento == "Dinheiro"
     assert len(parsed.items) == 3
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs

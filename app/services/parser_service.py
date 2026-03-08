@@ -208,21 +208,126 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
         block = " ".join(node.stripped_strings)
         if "(Código:" not in block or "Qtde" not in block:
             continue
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
         item = _parse_item_block(block, len(items) + 1)
         if item:
             items.append(item)
     return items
 
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
 def _extract_items_text(items_text: str) -> list[ParsedItem]:
     block_pattern = re.compile(
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+def _split_item_chunks(items_text: str) -> list[str]:
+    start_pattern = re.compile(r"(?im)^\s*[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)")
+    starts = [m.start() for m in start_pattern.finditer(items_text)]
+    if not starts:
+        return []
+    starts.append(len(items_text))
+    chunks: list[str] = []
+    for idx in range(len(starts) - 1):
+<<<<<<< ours
+        chunk = items_text[starts[idx]:starts[idx + 1]].strip()
+=======
+        chunk = items_text[starts[idx] : starts[idx + 1]].strip()
+>>>>>>> theirs
+        if chunk:
+            chunks.append(chunk)
+    return chunks
+
+
+def _extract_items_text(items_text: str) -> list[ParsedItem]:
+    single_pattern = re.compile(
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
         r"(?:\n\s*)?Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
         r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*(?:\n\s*|\s+)(?P<vtotal>[\d.,]+)",
         re.IGNORECASE,
     )
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
     items: list[ParsedItem] = []
     for idx, match in enumerate(block_pattern.finditer(items_text), start=1):
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+
+    items: list[ParsedItem] = []
+    for idx, chunk in enumerate(_split_item_chunks(items_text), start=1):
+        match = single_pattern.search(chunk)
+        if not match:
+            continue
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         items.append(
             ParsedItem(
                 ordem_item=idx,
