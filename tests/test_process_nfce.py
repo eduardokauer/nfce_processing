@@ -67,24 +67,24 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     assert data["parse_info"]["warnings"] == []
     assert data["parse_info"]["campos_faltantes"] == []
     assert data["lancamento"]["qtd_itens"] == 10
-    assert data["lancamento"]["valor_total_produtos"] == 103.57
+    assert data["lancamento"]["valor_total_produtos"] == 125.53
     assert len(data["itens"]) == 10
     assert codigos == [
         "1043171",
-        "1102202",
-        "1123303",
-        "1134404",
-        "1145505",
-        "1156606",
-        "1167707",
-        "1178808",
-        "1189909",
-        "1191010",
+        "1206944",
+        "1179874",
+        "1188117",
+        "1188117",
+        "1188117",
+        "1188117",
+        "1188117",
+        "59569",
+        "1050428",
     ]
-    assert codigos.count("1043171") == 1
+    assert codigos.count("1188117") == 5
     assert data["lancamento"]["forma_pagamento"] == "Vale Alimentação"
     assert "BISNAG KIM INT 300G" not in data["lancamento"]["endereco_emitente"]
-    assert data["lancamento"]["endereco_emitente"] == "AVENIDA MARIO SADANORI DOI 479 JARDIM DOS CAMARGOS BARUERI SP"
+    assert data["lancamento"]["endereco_emitente"] == "Avenida Mario Sadanori Doi 479 Jardim dos Camargos Barueri SP"
     assert data["lancamento"]["numero_nota"] == "27454"
     assert data["lancamento"]["serie_nota"] == "21"
     assert data["lancamento"]["protocolo_autorizacao"] == "135261457187156"

@@ -15,7 +15,10 @@ class ParseError(Exception):
 
 
 CODIGO_TOKEN = r"(?:C(?:o|ó|Ã³|ÃƒÂ³)digo)"
-ITEM_HEADER_PATTERN = re.compile(rf"[^\n]{{2,260}}\({CODIGO_TOKEN}:\s*[\w.-]+\s*\)", re.IGNORECASE)
+ITEM_HEADER_PATTERN = re.compile(
+    rf"[^\n]{{2,260}}\({CODIGO_TOKEN}\s*:\s*(?:\|\s*)?[\w.-]+(?:\s*\|\s*)?\s*\)",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -163,7 +166,7 @@ def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
         "INFORMACOES GERAIS",
         "CHAVE DE ACESSO",
     )
-    for line in lines:
+    for idx, line in enumerate(lines):
         upper = line.upper()
         stop_pos = min((upper.find(token) for token in stop_tokens if token in upper), default=-1)
         if stop_pos >= 0:
@@ -189,6 +192,20 @@ def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
             if prefix:
                 address_parts.append(prefix)
             break
+
+        # In the real Sendas layout, the product description can appear in one line
+        # and "(Código: ...)" in the next line.
+        if idx + 1 < len(lines):
+            next_line = lines[idx + 1]
+            if any(marker in next_line for marker in ("(Código:", "(Codigo:", "(CÃ³digo:", "(CÃƒÂ³digo:")):
+                uf_cut = re.search(
+                    r"^(.*\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b)\s+.+$",
+                    line,
+                    re.IGNORECASE,
+                )
+                if uf_cut:
+                    address_parts.append(uf_cut.group(1).strip(" ,"))
+                break
 
         address_parts.append(line)
 
@@ -224,9 +241,9 @@ def _extract_payment(raw_text: str) -> tuple[str | None, float | None]:
 
 def _parse_item_block(block: str, ordem: int) -> ParsedItem | None:
     pattern = re.compile(
-        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
-        r"Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
-        r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*:?\s*(?P<vtotal>[\d.,]+)?",
+        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}\s*:\s*(?:\|\s*)?(?P<codigo>[\w.-]+)(?:\s*\|\s*)?\s*\)\s*"
+        r"Qtde\.?\s*:?\s*(?:\|\s*)?(?P<qtd>[\d.,]+)(?:\s*\|\s*)?\s*UN\s*:?\s*(?:\|\s*)?(?P<un>[A-Za-z]{1,6})(?:\s*\|\s*)?\s*"
+        r"Vl\.\s*Unit\.?\s*:?\s*(?:\|\s*)?(?P<vunit>[\d.,]+)(?:\s*\|\s*)?\s*Vl\.\s*Total\s*:?\s*(?:\|\s*)?(?P<vtotal>[\d.,]+)?",
         re.IGNORECASE | re.DOTALL,
     )
     match = pattern.search(block)
@@ -245,17 +262,12 @@ def _parse_item_block(block: str, ordem: int) -> ParsedItem | None:
 
 def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
     items: list[ParsedItem] = []
-    seen_blocks: set[str] = set()
     for node in soup.select("tr, li, div, p"):
         block = " ".join(node.stripped_strings)
         if ("(Código:" not in block and "(CÃ³digo:" not in block) or "Qtde" not in block:
             continue
         if block.count("(Código:") + block.count("(CÃ³digo:") != 1:
             continue
-        normalized_block = re.sub(r"\s+", " ", block).strip()
-        if normalized_block in seen_blocks:
-            continue
-        seen_blocks.add(normalized_block)
         item = _parse_item_block(block, len(items) + 1)
         if item:
             items.append(item)
@@ -279,9 +291,9 @@ def _split_item_chunks(items_text: str) -> list[str]:
 
 def _extract_items_text(items_text: str) -> list[ParsedItem]:
     single_pattern = re.compile(
-        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
-        r"(?:\n\s*)?Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
-        r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*(?:\n\s*|\s+)(?P<vtotal>[\d.,]+)",
+        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}\s*:\s*(?:\|\s*)?(?P<codigo>[\w.-]+)(?:\s*\|\s*)?\s*\)\s*"
+        r"(?:\n\s*)?Qtde\.?\s*:?\s*(?:\|\s*)?(?P<qtd>[\d.,]+)(?:\s*\|\s*)?\s*UN\s*:?\s*(?:\|\s*)?(?P<un>[A-Za-z]{1,6})(?:\s*\|\s*)?\s*"
+        r"Vl\.\s*Unit\.?\s*:?\s*(?:\|\s*)?(?P<vunit>[\d.,]+)(?:\s*\|\s*)?\s*Vl\.\s*Total\s*(?:\s*\|\s*)?(?P<vtotal>[\d.,]+)",
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -363,10 +375,6 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
     if parsed.valor_total_nota is None:
         parsed.valor_total_nota = subtotal
 
-    if parsed.valor_total_produtos is None and subtotal is not None:
-        parsed.valor_total_produtos = subtotal
-        parsed.warnings.append("valor_total_produtos inferido de valor total")
-
     if items_text:
         parsed.items = _extract_items_text(items_text)
 
@@ -380,6 +388,22 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
 
     if parsed.qtd_itens == 0:
         parsed.qtd_itens = len(parsed.items)
+
+    if parsed.valor_total_produtos is None and subtotal is not None:
+        parsed.valor_total_produtos = subtotal
+
+        desconto = parsed.valor_desconto or 0.0
+        nota = parsed.valor_total_nota
+        items_consistentes = parsed.qtd_itens > 0 and len(parsed.items) == parsed.qtd_itens
+        valores_consistentes = False
+        if nota is not None:
+            if abs(desconto) <= 0.01:
+                valores_consistentes = abs(subtotal - nota) <= 0.02
+            else:
+                valores_consistentes = abs(subtotal - (nota + desconto)) <= 0.02
+
+        if not (items_consistentes and valores_consistentes):
+            parsed.warnings.append("valor_total_produtos inferido de valor total")
 
     if not parsed.endereco_emitente:
         parsed.warnings.append("endereco_emitente nÃ£o encontrado")
