@@ -44,6 +44,43 @@ def test_process_nfce_success(monkeypatch) -> None:
     assert descricoes[1] != descricoes[0]
 
 
+def test_process_nfce_sendas_realistic(monkeypatch) -> None:
+    async def _fake_fetch(_: str) -> str:
+        return _load_fixture("sample_nfce_sendas.html")
+
+    monkeypatch.setattr("app.services.nfce_service.fetch_nfce_html", _fake_fetch)
+    client = TestClient(app)
+
+    response = client.post(
+        "/process-nfce",
+        json={
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260312345678000123650010000099991000011112|3|1",
+            "tipo": "Supermercado",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    codigos = [item["codigo_item"] for item in data["itens"]]
+
+    assert data["lancamento"]["qtd_itens"] == 10
+    assert len(data["itens"]) == 10
+    assert codigos == [
+        "1043171",
+        "1177002",
+        "1180020",
+        "1154401",
+        "1023321",
+        "1099008",
+        "1201145",
+        "1110087",
+        "1132234",
+        "1167780",
+    ]
+    assert codigos.count("1043171") == 1
+    assert data["lancamento"]["forma_pagamento"] == "Vale Alimentação"
+
+
 def test_process_nfce_invalid_tipo() -> None:
     client = TestClient(app)
     response = client.post(
