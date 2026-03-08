@@ -14,6 +14,9 @@ class ParseError(Exception):
     pass
 
 
+CODIGO_TOKEN = r"(?:C[oó]digo|CÃ³digo)"
+
+
 @dataclass
 class ParsedItem:
     ordem_item: int
@@ -86,7 +89,7 @@ def _extract_access_key(raw_text: str, html: str) -> str | None:
 
 
 def _slice_items_section(raw_text: str) -> tuple[str, int | None]:
-    start_match = re.search(r"(?im)^[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)", raw_text)
+    start_match = re.search(rf"(?im)^[^\n]{{2,220}}\({CODIGO_TOKEN}:\s*[\w.-]+\s*\)", raw_text)
     if not start_match:
         return "", None
 
@@ -95,7 +98,7 @@ def _slice_items_section(raw_text: str) -> tuple[str, int | None]:
     end_markers = [
         r"(?im)^Qtd\.\s*total\s*de\s*itens\s*:",
         r"(?im)^Valor\s*total\s*R\$\s*:",
-        r"(?im)^INFORMA[ÇC][ÕO]ES\s+GERAIS\s+DA\s+NOTA",
+        r"(?im)^INFORMA(?:ÇÕES|Ã‡Ã•ES)\s+GERAIS\s+DA\s+NOTA",
         r"(?im)^CHAVE\s+DE\s+ACESSO",
     ]
     ends = [m.start() for marker in end_markers if (m := re.search(marker, tail))]
@@ -120,14 +123,14 @@ def _extract_emitente(raw_text: str) -> str | None:
     for idx, line in enumerate(lines):
         if "CNPJ" in line.upper() and idx > 0:
             candidate = lines[idx - 1]
-            if not any(token in candidate.upper() for token in ("DOCUMENTO", "NFC-E", "ELETRÔNICA")):
+            if not any(token in candidate.upper() for token in ("DOCUMENTO", "NFC-E", "ELETRÔNICA", "ELETRÃ”NICA")):
                 return candidate
 
     return None
 
 
 def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
-    labeled = _find(r"(?:Endere[cç]o)\s*:?\s*([^\n]+)", raw_text)
+    labeled = _find(r"(?:Endere(?:ço|cÃ§o))\s*:?\s*([^\n]+)", raw_text)
     if labeled:
         return labeled
 
@@ -145,9 +148,19 @@ def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
     address_parts: list[str] = []
     for line in lines:
         upper = line.upper()
-        if any(stop in upper for stop in ("QTD. TOTAL", "VALOR TOTAL", "FORMA DE PAGAMENTO", "INFORMAÇÕES GERAIS", "CHAVE DE ACESSO")):
+        if any(
+            stop in upper
+            for stop in (
+                "QTD. TOTAL",
+                "VALOR TOTAL",
+                "FORMA DE PAGAMENTO",
+                "INFORMAÇÕES GERAIS",
+                "INFORMAÃ‡Ã•ES GERAIS",
+                "CHAVE DE ACESSO",
+            )
+        ):
             break
-        if "(" in line and "CÓDIGO" in upper:
+        if "(" in line and ("CÓDIGO" in upper or "CÃ“DIGO" in upper):
             break
         address_parts.append(line)
 
@@ -183,7 +196,7 @@ def _extract_payment(raw_text: str) -> tuple[str | None, float | None]:
 
 def _parse_item_block(block: str, ordem: int) -> ParsedItem | None:
     pattern = re.compile(
-        r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
+        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
         r"Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
         r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*:?\s*(?P<vtotal>[\d.,]+)?",
         re.IGNORECASE | re.DOTALL,
@@ -206,94 +219,27 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
     items: list[ParsedItem] = []
     for node in soup.select("tr, li, div, p"):
         block = " ".join(node.stripped_strings)
-        if "(Código:" not in block or "Qtde" not in block:
+        if ("(Código:" not in block and "(CÃ³digo:" not in block) or "Qtde" not in block:
             continue
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< HEAD
-<<<<<<< ours
-=======
-        if block.count("(Código:") != 1:
+        if block.count("(Código:") + block.count("(CÃ³digo:") != 1:
             continue
->>>>>>> theirs
-=======
->>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
-=======
-        if block.count("(Código:") != 1:
-            continue
->>>>>>> theirs
         item = _parse_item_block(block, len(items) + 1)
         if item:
             items.append(item)
     return items
 
 
-<<<<<<< ours
-<<<<<<< HEAD
-<<<<<<< ours
-=======
->>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 
 
-=======
->>>>>>> theirs
-<<<<<<< HEAD
-=======
->>>>>>> theirs
-=======
->>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 def _split_item_chunks(items_text: str) -> list[str]:
-    start_pattern = re.compile(r"(?im)^\s*[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)")
+    start_pattern = re.compile(rf"(?im)^\s*[^\n]{{2,220}}\({CODIGO_TOKEN}:\s*[\w.-]+\s*\)")
     starts = [m.start() for m in start_pattern.finditer(items_text)]
     if not starts:
         return []
     starts.append(len(items_text))
     chunks: list[str] = []
     for idx in range(len(starts) - 1):
-<<<<<<< ours
-<<<<<<< HEAD
-<<<<<<< ours
-=======
->>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
-        chunk = items_text[starts[idx]:starts[idx + 1]].strip()
-=======
         chunk = items_text[starts[idx] : starts[idx + 1]].strip()
->>>>>>> theirs
-<<<<<<< HEAD
-=======
-        chunk = items_text[starts[idx] : starts[idx + 1]].strip()
->>>>>>> theirs
-=======
->>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
         if chunk:
             chunks.append(chunk)
     return chunks
@@ -301,7 +247,7 @@ def _split_item_chunks(items_text: str) -> list[str]:
 
 def _extract_items_text(items_text: str) -> list[ParsedItem]:
     single_pattern = re.compile(
-        r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
+        rf"(?P<desc>[^\n]+?)\s*\({CODIGO_TOKEN}:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
         r"(?:\n\s*)?Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
         r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*(?:\n\s*|\s+)(?P<vtotal>[\d.,]+)",
         re.IGNORECASE,
@@ -337,10 +283,15 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
     parsed.cnpj_emitente = _find(r"CNPJ\s*:?\s*(\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}-?\d{2})", raw_text)
     parsed.endereco_emitente = _extract_endereco(raw_text, items_start)
 
-    parsed.numero_nota = _find(r"N[úu]mero\s*:?\s*(\d+)", raw_text)
-    parsed.serie_nota = _find(r"S[ée]rie\s*:?\s*(\d+)", raw_text)
-    parsed.protocolo_autorizacao = _find(r"Protocolo\s*de\s*Autoriza[çc][ãa]o\s*:?\s*(\d+)", raw_text)
-    dt = _find(r"(?:Data\s*de\s*Emiss[ãa]o|Emiss[ãa]o)\s*:?\s*(\d{2}/\d{2}/\d{4}\s*\d{2}:\d{2}:\d{2})", raw_text)
+    parsed.numero_nota = _find(r"N(?:úmero|Ãºmero|umero)\s*:?\s*(\d+)", raw_text)
+    parsed.serie_nota = _find(r"S(?:érie|Ã©rie|erie)\s*:?\s*(\d+)", raw_text)
+    parsed.protocolo_autorizacao = _find(
+        r"Protocolo\s*de\s*Autoriza(?:ção|Ã§Ã£o|cao)\s*:?\s*(\d+)", raw_text
+    )
+    dt = _find(
+        r"(?:Data\s*de\s*Emiss(?:ão|Ã£o)|Emiss(?:ão|Ã£o))\s*:?\s*(\d{2}/\d{2}/\d{4}\s*\d{2}:\d{2}:\d{2})",
+        raw_text,
+    )
     (
         parsed.data_emissao,
         parsed.hora_emissao,
