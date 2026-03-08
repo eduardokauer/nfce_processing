@@ -213,6 +213,11 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
 =======
         if block.count("(Código:") != 1:
             continue
@@ -244,9 +249,12 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 def _extract_items_text(items_text: str) -> list[ParsedItem]:
     block_pattern = re.compile(
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -264,7 +272,11 @@ def _split_item_chunks(items_text: str) -> list[str]:
     chunks: list[str] = []
     for idx in range(len(starts) - 1):
 <<<<<<< ours
+<<<<<<< ours
         chunk = items_text[starts[idx]:starts[idx + 1]].strip()
+=======
+        chunk = items_text[starts[idx] : starts[idx + 1]].strip()
+>>>>>>> theirs
 =======
         chunk = items_text[starts[idx] : starts[idx + 1]].strip()
 >>>>>>> theirs
@@ -279,6 +291,9 @@ def _extract_items_text(items_text: str) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -298,9 +313,12 @@ def _extract_items_text(items_text: str) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     items: list[ParsedItem] = []
     for idx, match in enumerate(block_pattern.finditer(items_text), start=1):
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -319,6 +337,9 @@ def _extract_items_text(items_text: str) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
