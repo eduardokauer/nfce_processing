@@ -42,8 +42,11 @@ def test_process_nfce_success(monkeypatch) -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     assert data["itens"][0]["descricao_capturada"] == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -68,6 +71,9 @@ def test_process_nfce_success(monkeypatch) -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -174,7 +180,13 @@ def test_parser_text_fixture_realistic() -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+=======
+    assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
+    assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
+    assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
+>>>>>>> theirs
 =======
     assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
