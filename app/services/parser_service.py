@@ -85,6 +85,24 @@ def _extract_access_key(raw_text: str, html: str) -> str | None:
     return None
 
 
+def _slice_items_section(raw_text: str) -> tuple[str, int | None]:
+    start_match = re.search(r"(?im)^[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)", raw_text)
+    if not start_match:
+        return "", None
+
+    start = start_match.start()
+    tail = raw_text[start:]
+    end_markers = [
+        r"(?im)^Qtd\.\s*total\s*de\s*itens\s*:",
+        r"(?im)^Valor\s*total\s*R\$\s*:",
+        r"(?im)^INFORMA[ÇC][ÕO]ES\s+GERAIS\s+DA\s+NOTA",
+        r"(?im)^CHAVE\s+DE\s+ACESSO",
+    ]
+    ends = [m.start() for marker in end_markers if (m := re.search(marker, tail))]
+    end = min(ends) if ends else len(tail)
+    return tail[:end].strip(), start
+
+
 def _extract_emitente(raw_text: str) -> str | None:
     labeled = _find(r"(?:Emitente|EMITENTE)\s*:?\s*([^\n]+)", raw_text)
     if labeled:
@@ -108,22 +126,46 @@ def _extract_emitente(raw_text: str) -> str | None:
     return None
 
 
-def _extract_endereco(raw_text: str) -> str | None:
+def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
     labeled = _find(r"(?:Endere[cç]o)\s*:?\s*([^\n]+)", raw_text)
     if labeled:
         return labeled
 
-    lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
-    for idx, line in enumerate(lines):
-        if "CNPJ" in line.upper() and idx + 1 < len(lines):
-            maybe_addr = lines[idx + 1]
-            if len(maybe_addr) > 10 and any(token in maybe_addr.upper() for token in (",", "SP", "RJ", "MG", "PR")):
-                return maybe_addr
-    return None
+    cnpj_match = re.search(r"CNPJ\s*:?\s*\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}-?\d{2}", raw_text, re.IGNORECASE)
+    if not cnpj_match:
+        return None
+
+    start = cnpj_match.end()
+    end = item_start if item_start and item_start > start else len(raw_text)
+    candidate = raw_text[start:end]
+    lines = [line.strip(" ,") for line in candidate.splitlines() if line.strip()]
+    if not lines:
+        return None
+
+    address_parts: list[str] = []
+    for line in lines:
+        upper = line.upper()
+        if any(stop in upper for stop in ("QTD. TOTAL", "VALOR TOTAL", "FORMA DE PAGAMENTO", "INFORMAÇÕES GERAIS", "CHAVE DE ACESSO")):
+            break
+        if "(" in line and "CÓDIGO" in upper:
+            break
+        address_parts.append(line)
+
+    endereco = " ".join(address_parts).strip(" ,")
+    return re.sub(r"\s+", " ", endereco) if endereco else None
 
 
 def _extract_payment(raw_text: str) -> tuple[str | None, float | None]:
-    payment_line = _find(r"Valor\s*pago\s*R\$\s*:?[ \t]*(.+)", raw_text)
+    compact = re.sub(r"\s+", " ", raw_text)
+    combined = re.search(
+        r"Forma\s*de\s*pagamento\s*:\s*Valor\s*pago\s*R\$\s*:\s*([^\d]+?)\s+(\d+[\d.,]*)",
+        compact,
+        re.IGNORECASE,
+    )
+    if combined:
+        return combined.group(1).strip(" -:"), parse_brl_money(combined.group(2))
+
+    payment_line = _find(r"Valor\s*pago\s*R\$\s*:?\s*(.+)", raw_text)
     if payment_line:
         money_matches = re.findall(r"\d+[\d.,]*", payment_line)
         value = parse_brl_money(money_matches[-1]) if money_matches else None
@@ -132,30 +174,16 @@ def _extract_payment(raw_text: str) -> tuple[str | None, float | None]:
             method = payment_line.replace(money_matches[-1], "").strip(" -:")
         return method or None, value
 
-    section = _find(r"Forma\s*de\s*pagamento\s*:?\s*([\s\S]{0,120})", raw_text)
+    section = _find(r"Forma\s*de\s*pagamento\s*:?\s*([^\n]+)", raw_text)
     if section:
-        line = section.splitlines()[0].strip()
-        return line or None, None
+        return section.strip(), None
 
     return None, None
 
 
-def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
-    items: list[ParsedItem] = []
-    candidate_nodes = soup.select("tr, li, div, p")
-    for node in candidate_nodes:
-        block = " ".join(node.stripped_strings)
-        if "Código" not in block or "Qtde" not in block:
-            continue
-        item = _parse_item_block(block, len(items) + 1)
-        if item:
-            items.append(item)
-    return items
-
-
 def _parse_item_block(block: str, ordem: int) -> ParsedItem | None:
     pattern = re.compile(
-        r"(?P<desc>.+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
+        r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
         r"Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
         r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*:?\s*(?P<vtotal>[\d.,]+)?",
         re.IGNORECASE | re.DOTALL,
@@ -174,15 +202,27 @@ def _parse_item_block(block: str, ordem: int) -> ParsedItem | None:
     )
 
 
-def _extract_items_text(raw_text: str) -> list[ParsedItem]:
+def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
+    items: list[ParsedItem] = []
+    for node in soup.select("tr, li, div, p"):
+        block = " ".join(node.stripped_strings)
+        if "(Código:" not in block or "Qtde" not in block:
+            continue
+        item = _parse_item_block(block, len(items) + 1)
+        if item:
+            items.append(item)
+    return items
+
+
+def _extract_items_text(items_text: str) -> list[ParsedItem]:
     block_pattern = re.compile(
-        r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*\n"
-        r"Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
-        r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*\n?\s*(?P<vtotal>[\d.,]+)",
+        r"(?P<desc>[^\n]+?)\s*\(C[oó]digo:\s*(?P<codigo>[\w.-]+)\s*\)\s*"
+        r"(?:\n\s*)?Qtde\.?\s*:?\s*(?P<qtd>[\d.,]+)\s*UN\s*:?\s*(?P<un>[A-Za-z]{1,6})\s*"
+        r"Vl\.\s*Unit\.?\s*:?\s*(?P<vunit>[\d.,]+)\s*Vl\.\s*Total\s*(?:\n\s*|\s+)(?P<vtotal>[\d.,]+)",
         re.IGNORECASE,
     )
     items: list[ParsedItem] = []
-    for idx, match in enumerate(block_pattern.finditer(raw_text), start=1):
+    for idx, match in enumerate(block_pattern.finditer(items_text), start=1):
         items.append(
             ParsedItem(
                 ordem_item=idx,
@@ -201,11 +241,12 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
     raw_text = html_to_text(html)
     parsed = ParsedNFCE(raw_text=raw_text)
     soup = BeautifulSoup(html, "lxml")
+    items_text, items_start = _slice_items_section(raw_text)
 
     parsed.chave_acesso = _extract_access_key(raw_text, html)
     parsed.emitente = _extract_emitente(raw_text)
     parsed.cnpj_emitente = _find(r"CNPJ\s*:?\s*(\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}-?\d{2})", raw_text)
-    parsed.endereco_emitente = _extract_endereco(raw_text)
+    parsed.endereco_emitente = _extract_endereco(raw_text, items_start)
 
     parsed.numero_nota = _find(r"N[úu]mero\s*:?\s*(\d+)", raw_text)
     parsed.serie_nota = _find(r"S[ée]rie\s*:?\s*(\d+)", raw_text)
@@ -239,18 +280,22 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
         parsed.valor_total_produtos = subtotal
         parsed.warnings.append("valor_total_produtos inferido de valor total")
 
-    if parsed.valor_pago is None and parsed.valor_total_nota is not None:
-        parsed.valor_pago = parsed.valor_total_nota
-        parsed.warnings.append("valor_pago ausente; usando valor_total_nota")
+    if items_text:
+        parsed.items = _extract_items_text(items_text)
 
-    parsed.items = _extract_items_structured(soup)
     if not parsed.items:
-        parsed.items = _extract_items_text(raw_text)
-    if not parsed.items:
+        parsed.items = _extract_items_structured(soup)
+
+    if not parsed.items and items_text:
+        parsed.warnings.append("itens não parseados no bloco identificado")
+    elif not parsed.items:
         parsed.warnings.append("Itens não encontrados")
 
     if parsed.qtd_itens == 0:
         parsed.qtd_itens = len(parsed.items)
+
+    if not parsed.endereco_emitente:
+        parsed.warnings.append("endereco_emitente não encontrado")
 
     missing_critical = []
     for critical in ["chave_acesso", "emitente"]:
