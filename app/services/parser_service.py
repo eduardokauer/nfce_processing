@@ -215,11 +215,14 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
 =======
         if block.count("(Código:") != 1:
             continue
 >>>>>>> theirs
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 =======
         if block.count("(Código:") != 1:
             continue
@@ -255,13 +258,19 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
 
 
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 
 
 =======
 >>>>>>> theirs
+<<<<<<< HEAD
 =======
 >>>>>>> theirs
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 def _split_item_chunks(items_text: str) -> list[str]:
     start_pattern = re.compile(r"(?im)^\s*[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)")
     starts = [m.start() for m in start_pattern.finditer(items_text)]
@@ -271,14 +280,20 @@ def _split_item_chunks(items_text: str) -> list[str]:
     chunks: list[str] = []
     for idx in range(len(starts) - 1):
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
         chunk = items_text[starts[idx]:starts[idx + 1]].strip()
 =======
         chunk = items_text[starts[idx] : starts[idx + 1]].strip()
 >>>>>>> theirs
+<<<<<<< HEAD
 =======
         chunk = items_text[starts[idx] : starts[idx + 1]].strip()
 >>>>>>> theirs
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
         if chunk:
             chunks.append(chunk)
     return chunks

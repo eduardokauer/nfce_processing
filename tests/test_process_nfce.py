@@ -42,7 +42,10 @@ def test_process_nfce_success(monkeypatch) -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
     assert data["itens"][0]["descricao_capturada"] == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
 =======
 =======
@@ -57,8 +60,11 @@ def test_process_nfce_success(monkeypatch) -> None:
 >>>>>>> theirs
 =======
 >>>>>>> theirs
+<<<<<<< HEAD
 =======
 >>>>>>> theirs
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
     codigos = [item["codigo_item"] for item in data["itens"]]
     descricoes = [item["descricao_capturada"] for item in data["itens"]]
     assert codigos == ["277976", "277857", "223515"]
@@ -71,9 +77,12 @@ def test_process_nfce_success(monkeypatch) -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
 >>>>>>> theirs
 =======
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -180,7 +189,10 @@ def test_parser_text_fixture_realistic() -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< HEAD
 <<<<<<< ours
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
 =======
     assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
@@ -217,8 +229,11 @@ def test_parser_text_fixture_realistic() -> None:
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
     assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
 >>>>>>> theirs
+<<<<<<< HEAD
 =======
     assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
     assert parsed.items[1].descricao_capturada != parsed.items[0].descricao_capturada
 >>>>>>> theirs
+=======
+>>>>>>> aa8fd4bbafa5e90eea61e9622fc3d5ebf20441a1
