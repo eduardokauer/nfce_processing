@@ -349,7 +349,7 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
 
     parsed.qtd_itens = int(_find(r"Qtd\.\s*total\s*de\s*itens\s*:?\s*(\d+)", raw_text) or 0)
     parsed.valor_total_produtos = parse_brl_money(
-        _find(r"Valor\s*total\s*(?:dos\s*)?produtos\s*R\$\s*:?\s*([\d.,]+)", raw_text)
+        _find(r"Valor\s*total\s*(?:dos\s*|de\s*)?produtos(?:\s*e\s*servi[cç]os)?\s*R\$\s*:?\s*([\d.,]+)", raw_text)
     )
     subtotal = parse_brl_money(_find(r"Valor\s*total\s*R\$\s*:?\s*([\d.,]+)", raw_text))
     parsed.valor_desconto = parse_brl_money(_find(r"Descontos?\s*R\$\s*:?\s*([\d.,]+)", raw_text))

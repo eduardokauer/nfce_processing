@@ -67,6 +67,7 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     assert data["parse_info"]["warnings"] == []
     assert data["parse_info"]["campos_faltantes"] == []
     assert data["lancamento"]["qtd_itens"] == 10
+    assert data["lancamento"]["valor_total_produtos"] == 103.57
     assert len(data["itens"]) == 10
     assert codigos == [
         "1043171",
