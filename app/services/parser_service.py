@@ -214,6 +214,11 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+        if block.count("(Código:") != 1:
+            continue
+>>>>>>> theirs
 =======
         if block.count("(Código:") != 1:
             continue
@@ -244,8 +249,11 @@ def _extract_items_structured(soup: BeautifulSoup) -> list[ParsedItem]:
     return items
 
 
+<<<<<<< ours
 
 
+=======
+>>>>>>> theirs
 def _split_item_chunks(items_text: str) -> list[str]:
     start_pattern = re.compile(r"(?im)^\s*[^\n]{2,220}\(C[oó]digo:\s*[\w.-]+\s*\)")
     starts = [m.start() for m in start_pattern.finditer(items_text)]
@@ -254,7 +262,11 @@ def _split_item_chunks(items_text: str) -> list[str]:
     starts.append(len(items_text))
     chunks: list[str] = []
     for idx in range(len(starts) - 1):
+<<<<<<< ours
         chunk = items_text[starts[idx]:starts[idx + 1]].strip()
+=======
+        chunk = items_text[starts[idx] : starts[idx + 1]].strip()
+>>>>>>> theirs
         if chunk:
             chunks.append(chunk)
     return chunks
