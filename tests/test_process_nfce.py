@@ -159,6 +159,7 @@ def test_parser_text_fixture_realistic() -> None:
 <<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     assert parsed.items[0].descricao_capturada == "SUCO DE LARANJA MOMENTO MAMBO 500ML"
 =======
     assert [item.codigo_item for item in parsed.items] == ["277976", "277857", "223515"]
