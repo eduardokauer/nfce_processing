@@ -140,31 +140,56 @@ def _extract_endereco(raw_text: str, item_start: int | None) -> str | None:
         return None
 
     start = cnpj_match.end()
-    end = item_start if item_start and item_start > start else len(raw_text)
+    end = item_start if item_start and item_start > (start + 10) else len(raw_text)
     candidate = raw_text[start:end]
     lines = [line.strip(" ,") for line in candidate.splitlines() if line.strip()]
     if not lines:
         return None
 
     address_parts: list[str] = []
+    stop_tokens = (
+        "NÚMERO:",
+        "NUMERO:",
+        "SÉRIE:",
+        "SERIE:",
+        "EMISSÃO:",
+        "EMISSAO:",
+        "PROTOCOLO DE AUTORIZAÇÃO:",
+        "PROTOCOLO DE AUTORIZACAO:",
+        "QTD. TOTAL DE ITENS",
+        "VALOR TOTAL",
+        "FORMA DE PAGAMENTO",
+        "INFORMAÇÕES GERAIS",
+        "INFORMACOES GERAIS",
+        "CHAVE DE ACESSO",
+    )
     for line in lines:
         upper = line.upper()
-        if any(
-            stop in upper
-            for stop in (
-                "QTD. TOTAL",
-                "VALOR TOTAL",
-                "FORMA DE PAGAMENTO",
-                "INFORMAÇÕES GERAIS",
-                "INFORMACOES GERAIS",
-                "INFORMAÃ‡Ã•ES GERAIS",
-                "INFORMAÃƒâ€¡Ãƒâ€¢ES GERAIS",
-                "CHAVE DE ACESSO",
+        stop_pos = min((upper.find(token) for token in stop_tokens if token in upper), default=-1)
+        if stop_pos >= 0:
+            prefix = line[:stop_pos].strip(" ,")
+            if prefix:
+                address_parts.append(prefix)
+            break
+
+        item_marker_pos = -1
+        for marker in ("(Código:", "(Codigo:", "(CÃ³digo:", "(CÃƒÂ³digo:"):
+            pos = line.find(marker)
+            if pos >= 0:
+                item_marker_pos = pos if item_marker_pos == -1 else min(item_marker_pos, pos)
+        if item_marker_pos >= 0:
+            prefix = line[:item_marker_pos].strip(" ,")
+            uf_cut = re.search(
+                r"^(.*\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b)\s+.+$",
+                prefix,
+                re.IGNORECASE,
             )
-        ):
+            if uf_cut:
+                prefix = uf_cut.group(1).strip(" ,")
+            if prefix:
+                address_parts.append(prefix)
             break
-        if "(" in line and ("CÓDIGO" in upper or "CODIGO" in upper or "CÃ“DIGO" in upper or "CÃƒâ€œDIGO" in upper):
-            break
+
         address_parts.append(line)
 
     endereco = " ".join(address_parts).strip(" ,")
@@ -324,7 +349,7 @@ def parse_nfce_sp_html(html: str) -> ParsedNFCE:
 
     parsed.qtd_itens = int(_find(r"Qtd\.\s*total\s*de\s*itens\s*:?\s*(\d+)", raw_text) or 0)
     parsed.valor_total_produtos = parse_brl_money(
-        _find(r"Valor\s*total\s*dos\s*produtos\s*R\$\s*:?\s*([\d.,]+)", raw_text)
+        _find(r"Valor\s*total\s*(?:dos\s*)?produtos\s*R\$\s*:?\s*([\d.,]+)", raw_text)
     )
     subtotal = parse_brl_money(_find(r"Valor\s*total\s*R\$\s*:?\s*([\d.,]+)", raw_text))
     parsed.valor_desconto = parse_brl_money(_find(r"Descontos?\s*R\$\s*:?\s*([\d.,]+)", raw_text))

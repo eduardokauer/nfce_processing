@@ -54,7 +54,7 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     response = client.post(
         "/process-nfce",
         json={
-            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260312345678000123650010000099991000011112|3|1",
+            "link_nfce": "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35260306057223056630650210000274541210607969|3|1",
             "tipo": "Supermercado",
         },
     )
@@ -64,29 +64,32 @@ def test_process_nfce_sendas_realistic(monkeypatch) -> None:
     codigos = [item["codigo_item"] for item in data["itens"]]
 
     assert data["status"] == "ok"
+    assert data["parse_info"]["warnings"] == []
+    assert data["parse_info"]["campos_faltantes"] == []
     assert data["lancamento"]["qtd_itens"] == 10
     assert len(data["itens"]) == 10
     assert codigos == [
         "1043171",
-        "1177002",
-        "1180020",
-        "1154401",
-        "1023321",
-        "1099008",
-        "1201145",
-        "1110087",
-        "1132234",
-        "1167780",
+        "1102202",
+        "1123303",
+        "1134404",
+        "1145505",
+        "1156606",
+        "1167707",
+        "1178808",
+        "1189909",
+        "1191010",
     ]
     assert codigos.count("1043171") == 1
     assert data["lancamento"]["forma_pagamento"] == "Vale Alimentação"
-    assert data["lancamento"]["endereco_emitente"] == "AV BRASIL , 1500 , LOJA 02 , RIO DE JANEIRO , RJ"
-    assert data["lancamento"]["numero_nota"] == "999991"
-    assert data["lancamento"]["serie_nota"] == "1"
-    assert data["lancamento"]["protocolo_autorizacao"] == "135261999999999"
-    assert data["lancamento"]["data_emissao"] == "2026-03-06"
-    assert data["lancamento"]["hora_emissao"] == "20:12:30"
-    assert data["lancamento"]["data_hora_emissao"] == "2026-03-06T20:12:30-03:00"
+    assert "BISNAG KIM INT 300G" not in data["lancamento"]["endereco_emitente"]
+    assert data["lancamento"]["endereco_emitente"] == "AVENIDA MARIO SADANORI DOI 479 JARDIM DOS CAMARGOS BARUERI SP"
+    assert data["lancamento"]["numero_nota"] == "27454"
+    assert data["lancamento"]["serie_nota"] == "21"
+    assert data["lancamento"]["protocolo_autorizacao"] == "135261457187156"
+    assert data["lancamento"]["data_emissao"] == "2026-03-03"
+    assert data["lancamento"]["hora_emissao"] == "10:38:48"
+    assert data["lancamento"]["data_hora_emissao"] == "2026-03-03T10:38:48-03:00"
     assert data["lancamento"]["mes_ref"] == "2026-03"
     assert data["lancamento"]["ano_ref"] == 2026
 
